@@ -1,4 +1,4 @@
-#include <stdio.h>
+
 #include "MYCAR.h"
 
 unsigned char timer1 = 0;
@@ -8,6 +8,7 @@ unsigned char y = 0;
 unsigned char duty = 10;
 unsigned char direction = 0;
 unsigned int 	angle;
+unsigned char lastdir;
 
 void main()
 {
