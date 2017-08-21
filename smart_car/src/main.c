@@ -3,8 +3,6 @@
 
 unsigned char timer1 = 0;
 unsigned int 	timer2 = 0;
-unsigned char x = 0;
-unsigned char y = 0; 
 unsigned char duty = 10;
 unsigned char direction = 0;
 unsigned int 	angle;
@@ -15,49 +13,15 @@ void main()
 	Time1Config();
 	while(1) 
 	{ 
-		Sensor_Module();
-		if(plus==0)
-		{
-			delay(5);	  
-			if(plus==0){
-				while(!plus);
-				x=1;
-				if(x==1){
-					duty++;
-					deng6=0;
-					delay(5);
-					deng6=1;
-				}
-				if(duty>20){
-					duty=0;
-				}
-			}
-		}
-
-		if(sub==0)
-		{
-			delay(5);	 
-			if(sub==0)	
-			{
-				while(!sub);
-				y=1;
-				if(y==1){
-					duty--;
-					deng7=0;
-					delay(5);
-					deng7=1;;
-				}
-				if(duty<=0){
-					duty=20;
-				}
-			}  
-		}
+		Sensor_Module();//调用传感器模块
+		SpeedControl();
+		lastdir = direction;
 	}
  }
  
  void Time1Config()
  {
-	 TMOD|= 0x20;  
+	 TMOD|= 0x20;  	//双八位的定时器
 	 
 	 TH1 = 0xA3; 
 	 TL1 = 0xA3;
@@ -65,6 +29,22 @@ void main()
 	 EA = 1;
 	 TR1 = 1;	 
  }
+ 
+ 
+ bit PWM=0;
+unsigned int dataa[2]={123,321};
+void Timer2(void) interrupt ?
+{
+	
+	TH0=dataa[PWM]/256;
+	TL0=dataa[PWM]%256;
+	PWM=~PWM;
+	
+
+
+
+} 
+ 
  
  void Time1(void) interrupt 3   
  {
@@ -74,7 +54,7 @@ void main()
 	 {
 		 timer1=0;
 	 }
-	 if(timer1 < duty)
+	 if(timer1 < duty)	//duty为电机的脉宽，调节车速
 		 PWM=1;
 	 if(timer1 >= duty)
 		 PWM=0; 
@@ -83,11 +63,14 @@ void main()
 		 timer2=0;
 	 }	
 	 	if(timer2 <= angle){
-			 HIGHELEC;
-		 }else{
-			 LOWELEC;
+			 HIGHELEC;				//PWM_D = 1 	高电平
+		 }else{	
+			 LOWELEC;					//PWM_D = 0		低电平
 		 }
-		
+		/*******************************************
+		 以传感器模块改变的方向角度，
+		 在这里进行switch的选择，调节占空比
+		 ******************************************/
 	 switch(direction)
 		 {
 		 case left40: angle = 3; break;
