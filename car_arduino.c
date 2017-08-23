@@ -3,9 +3,13 @@
 
 Servo myservo;
 
-#define STRAIGHT    90
-#define LEFT        60
-#define RIGHT       120
+#define STRAIGHT       	90
+#define LEFT_30         60
+#define LEFT_15     	75
+#define LEFT_40     	50
+#define RIGHT_30        120
+#define RIGHT_15    	105
+#define RIGHT_40   	 	130
 
 const unsigned int motor_left_pwm = 6;
 const unsigned int motor_left_pin1 = 7;
@@ -21,7 +25,6 @@ unsigned int angle;
 
 void motor(char pin1,char pin2,char pwmpin,char state,char val)
 {
-    pinMode(pin, OUTPUT);
     if(state == 1)    //当state为1时正转
     {
       analogWrite(pwmpin,val);
@@ -38,7 +41,7 @@ void motor(char pin1,char pin2,char pwmpin,char state,char val)
     {
       analogWrite(pwmpin,0);
       digitalWrite(pin1,LOW);
-      digitalWrite(pi21,LOW);
+      digitalWrite(pin2,LOW);
     }
 }
 
@@ -51,18 +54,18 @@ unsigned char sensor_read()
   switch(Direc)
   {
     case 1:dir = RIGHT_30;break;
-    case 100:dir = STRAIGHT;break
+    case 10:dir = RIGHT_15;break;
+    case 11:dir = RIGHT_30;break;
+    case 111:dir = RIGHT_40;break;
+    case 100:dir = STRAIGHT;break;
     case 10000:dir  = LEFT_30; break;
+    case 11000:dir = LEFT_30;break;
+    case 1000:dir = LEFT_15;break;
+    case 11100:dir = LEFT_40;break;
   }
   angle = dir;
   return dir;
 }
-
-
-
-(-30, 30)
-(0, 30) right turn
-(-30, 0) left turn
 
 void steering(int pos)
 {
@@ -76,14 +79,18 @@ void car_move()
      Angle = angle - 90;
      switch(Angle)
      {
-     	case -30:motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180-30);break;
-     	case 0:break;
-     	case 30:motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180-30);break;
-     	default:
-     	angle = 90;
-     	motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180);
- 	    motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180);
-     	break;
+      case -40:motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180-40);break;
+      case -30:motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180-30);break;
+      case 0:break;
+      case 30:motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180-30);break;
+      case 40:motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180-40);break;
+      default:
+      {
+        angle = 90;
+        motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180);
+        motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180);
+        break;
+      }
      }
 }
 
@@ -92,6 +99,10 @@ void setup()
     myservo.attach(9);
     pinMode(sensor_pin[0], OUTPUT); // declare the ledPin as as OUTPUT
     Serial.begin(9600);
+    pinMode(motor_right_pin1, OUTPUT);
+    pinMode(motor_right_pin2, OUTPUT);
+    pinMode(motor_left_pin1, OUTPUT);
+    pinMode(motor_left_pin2, OUTPUT);    
 }
 
 
