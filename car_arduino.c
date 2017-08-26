@@ -1,15 +1,28 @@
 #include <Servo.h>
-#include <MsTimer2.h>
+
+#define DEBUG 0
 
 Servo myservo;
 
-#define STRAIGHT       	90
-#define LEFT_30         60
-#define LEFT_15     	75
-#define LEFT_40     	50
-#define RIGHT_30        120
-#define RIGHT_15    	105
-#define RIGHT_40   	 	130
+/* the smart car status structure */
+struct car_status {
+/* basic status */
+  int left; /* left motor pwm */
+  int right;  /* right motor pwm */
+  int steering; /* steering angle */
+  unsigned int sensor;  /* optic sensor value */
+};
+
+#define STRAIGHT        (0)
+#define LEFT_30         (30)
+#define LEFT_15       (15)
+#define LEFT_40       (40)
+#define RIGHT_30        (-30)
+#define RIGHT_15      (-15)
+#define RIGHT_40      (-40)
+
+struct car_status car;
+
 
 const unsigned int motor_left_pwm = 6;
 const unsigned int motor_left_pin1 = 7;
@@ -19,97 +32,186 @@ const unsigned int motor_right_pin1 = 12;
 const unsigned int motor_right_pin2 = 13;
 
 const unsigned int servo_line = 9;
-const unsigned int sensor_pin[6] = {10,14,15,16,17,18};
 
-unsigned int angle;
+#define NUM_OF_SENSOR_PINS 6
+const unsigned int sensor_pins[NUM_OF_SENSOR_PINS] = {10,14,15,16,17,18};
 
-void motor(char pin1,char pin2,char pwmpin,char state,char val)
+
+#define SEETRING_OFFSET    90
+
+/**
+ *  left: left motor pwm, [-255, 255], < 0 backward, > 0 forward
+ *    ,  255: 100% volatage for motor
+ *  right: see left above
+ */
+int motor_dual(int left, int right)
 {
-    if(state == 1)    //当state为1时正转
-    {
-      analogWrite(pwmpin,val);
-      digitalWrite(pin1,HIGH);
-      digitalWrite(pin2,LOW);
-    }
-    if(state == 2)    //当state为2时反转
-    {
-      analogWrite(pwmpin,val);
-      digitalWrite(pin1,LOW);
-      digitalWrite(pin2,HIGH);
-    }
-    if(state == 0)    //当state为1时停止
-    {
-      analogWrite(pwmpin,0);
-      digitalWrite(pin1,LOW);
-      digitalWrite(pin2,LOW);
-    }
-}
-
-
-unsigned char sensor_read()
-{
-  unsigned int dir;
-  unsigned int Direc;
-  Direc = 10000*sensor_pin[5]+1000*sensor_pin[4]+100*sensor_pin[3]+10*sensor_pin[2]+sensor_pin[1];
-  switch(Direc)
-  {
-    case 1:dir = RIGHT_30;break;
-    case 10:dir = RIGHT_15;break;
-    case 11:dir = RIGHT_30;break;
-    case 111:dir = RIGHT_40;break;
-    case 100:dir = STRAIGHT;break;
-    case 10000:dir  = LEFT_30; break;
-    case 11000:dir = LEFT_30;break;
-    case 1000:dir = LEFT_15;break;
-    case 11100:dir = LEFT_40;break;
+  if (left > 255) {
+    left = 255;
+  } else if (left < -255) {
+    left = -255;
   }
-  angle = dir;
-  return dir;
+
+  if (right > 255) {
+    right = 255;
+  } else if (right < -255) {
+    right = -255;
+  }
+
+  if (left > 0) {
+    digitalWrite(motor_left_pin1, LOW);
+    digitalWrite(motor_left_pin2, HIGH);
+  } else {
+    digitalWrite(motor_left_pin1, HIGH);
+    digitalWrite(motor_left_pin2, LOW);
+    left = -left;
+  }
+
+  if (right > 0) {
+    digitalWrite(motor_right_pin1, LOW);
+    digitalWrite(motor_right_pin2, HIGH);
+  } else {
+    digitalWrite(motor_right_pin1, HIGH);
+    digitalWrite(motor_right_pin2, LOW);
+    right = -right;
+  }
+
+  analogWrite(motor_left_pwm, left);
+  analogWrite(motor_right_pwm, right);
 }
 
-void steering(int pos)
+
+/*  0b pin5 pin4 pin3 pin2 pin1 pin0 
+ *     18    17   16   15   14   10
+*/ 
+unsigned int sensor(void)
 {
-    myservo.write(pos);              // tell servo to go to position in variable 'pos'
-    delay(150);                       // waits 15ms for the servo to reach the position
+  int i;
+  unsigned int input;
+  
+  for (i = 0; i < NUM_OF_SENSOR_PINS; i++) {
+    input |= (digitalRead(sensor_pins[i]) << i);
+  }
+
+
+  /* todo: add filter for sensor ? */
+  return input;
 }
 
-void car_move()
+
+/** 
+ *  [-40, 40]
+ *  
+ */
+int steering(int angle)
 {
-     unsigned Angle;
-     Angle = angle - 90;
-     switch(Angle)
-     {
-      case -40:motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180-40);break;
-      case -30:motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180-30);break;
-      case 0:break;
-      case 30:motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180-30);break;
-      case 40:motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180-40);break;
-      default:
-      {
-        angle = 90;
-        motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180);
-        motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180);
-        break;
-      }
-     }
+  if (angle > 40) {
+    angle = 40;
+  } else if (angle < -40) {
+    angle = -40;
+  }
+
+  angle += SEETRING_OFFSET;
+    myservo.write(angle);
+
+    return angle;
+}
+
+
+int sensor2steering_array[64] = {
+  0,       /* 0x0 */
+  RIGHT_40, /* 0x1 */
+  RIGHT_30,
+  RIGHT_15,
+  STRAIGHT,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+}; 
+
+
+int sensor2steering(unsigned int sensor)
+{
+  if (sensor > (1 << NUM_OF_SENSOR_PINS)) {
+    return STRAIGHT;
+  }
+
+  return sensor2steering_array[sensor];
+}
+
+int steering2motor(int steering)
+{
+  car.left = 127;
+  car.right = 127;
+  motor_dual(127, 127);
 }
 
 void setup() 
 {
-    myservo.attach(9);
-    pinMode(sensor_pin[0], OUTPUT); // declare the ledPin as as OUTPUT
-    Serial.begin(9600);
+  int i;
+
+    /* sensor initialization */
+    for (i = 0; i < NUM_OF_SENSOR_PINS; i++) {
+       pinMode(sensor_pins[i], INPUT); // declare the sensor pin as inpt
+    }
+  
+    /* motor initialization */
+    pinMode(motor_right_pwm, OUTPUT);
+    pinMode(motor_left_pwm, OUTPUT);
     pinMode(motor_right_pin1, OUTPUT);
     pinMode(motor_right_pin2, OUTPUT);
     pinMode(motor_left_pin1, OUTPUT);
-    pinMode(motor_left_pin2, OUTPUT);    
-}
+    pinMode(motor_left_pin2, OUTPUT); 
 
+    /* servo initializaiton */
+    myservo.attach(servo_line); 
+
+  Serial.begin(9600);
+}
 
 void loop()
 {
-    motor(motor_left_pin1,motor_left_pin2,motor_left_pwm,1,180);
-    motor(motor_right_pin1,motor_right_pin2,motor_right_pwm,1,180);
-    steering(sensor_read());  
-    car_move();
+   //steering2motor(steering(sensor2steering(sensor_read())));
+  car.sensor = sensor();
+  car.steering = sensor2steering(car.sensor);
+  steering(car.steering);
+  steering2motor(car.steering);
+#if DEBUG
+  Serial.print(car.left);
+  Serial.print(car.right);
+  /* to do add more output info. */
+#endif
 }
