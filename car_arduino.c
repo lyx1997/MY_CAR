@@ -15,11 +15,13 @@ struct car_status {
 
 #define STRAIGHT        (0)
 #define LEFT_30         (30)
-#define LEFT_15       (15)
-#define LEFT_40       (40)
+#define LEFT_15       	(15)
+#define LEFT_40      	(40)
+#define LEFT_20			(20)
 #define RIGHT_30        (-30)
-#define RIGHT_15      (-15)
-#define RIGHT_40      (-40)
+#define RIGHT_15      	(-15)
+#define RIGHT_40      	(-40)
+#define RIGHT_20	  	(-20)
 
 struct car_status car;
 
@@ -33,8 +35,8 @@ const unsigned int motor_right_pin2 = 13;
 
 const unsigned int servo_line = 9;
 
-#define NUM_OF_SENSOR_PINS 6
-const unsigned int sensor_pins[NUM_OF_SENSOR_PINS] = {10,14,15,16,17,18};
+#define NUM_OF_SENSOR_PINS 5
+const unsigned int sensor_pins[NUM_OF_SENSOR_PINS] = {14,15,16,17,18};
 
 
 #define SEETRING_OFFSET    90
@@ -76,6 +78,8 @@ int motor_dual(int left, int right)
     right = -right;
   }
 
+  car.left = left;
+  car.right = right;
   analogWrite(motor_left_pwm, left);
   analogWrite(motor_right_pwm, right);
 }
@@ -93,7 +97,6 @@ unsigned int sensor(void)
     input |= (digitalRead(sensor_pins[i]) << i);
   }
 
-
   /* todo: add filter for sensor ? */
   return input;
 }
@@ -101,7 +104,7 @@ unsigned int sensor(void)
 
 /** 
  *  [-40, 40]
- *  
+ *  tell the servo to go to the position
  */
 int steering(int angle)
 {
@@ -118,48 +121,39 @@ int steering(int angle)
 }
 
 
-int sensor2steering_array[64] = {
-  0,       /* 0x0 */
-  RIGHT_40, /* 0x1 */
-  RIGHT_30,
-  RIGHT_15,
-  STRAIGHT,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
-  0,
+int sensor2steering_array[33] = {
+  0,       				// 0x00 
+  RIGHT_30, 			// 0x01 
+  RIGHT_15,				// 0x02
+  RIGHT_30,				// 0x03
+  STRAIGHT,				// 0x04
+  -5,					// 0x05
+  RIGHT_20,				// 0x06
+  RIGHT_40,				// 0x07
+  LEFT_15,				// 0x08
+  10,					// 0x09	
+  STRAIGHT,				// 0x10
+  -7,					// 0x11
+  LEFT_20,				// 0xC
+  -6,					// 0xD
+  STRAIGHT,				// 0xE
+  -14,					// 0xF
+  LEFT_30,				// 0x10
+  STRAIGHT,				// 0x11
+  7,					// 0x12
+  -5,					// 0x13
+  5,					// 0x14
+  STRAIGHT,				// 0x15
+  6,					// 0x16
+  -5,					// 0x17
+  LEFT_30,				// 0x18
+  7,					// 0x19
+  7,					// 0x1A
+  STRAIGHT,				// 0x1B
+  LEFT_40,				// 0x1C
+  8,					// 0x1D
+  9,					// 0x1E
+  NULL,					// 0x1F
 }; 
 
 
@@ -176,7 +170,7 @@ int steering2motor(int steering)
 {
   car.left = 127;
   car.right = 127;
-  motor_dual(127, 127);
+  motor_dual(car.left, car.right);
 }
 
 void setup() 
