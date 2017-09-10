@@ -28,12 +28,12 @@ struct car_status {
 struct car_status car;
 
 
-const unsigned int motor_left_pwm = 6;
+const unsigned int motor_left_pwm = 5;
 const unsigned int motor_left_pin1 = 7;
 const unsigned int motor_left_pin2 = 8;
-const unsigned int motor_right_pwm = 5;
-const unsigned int motor_right_pin1 = 12;
-const unsigned int motor_right_pin2 = 13;
+const unsigned int motor_right_pwm = 6;
+const unsigned int motor_right_pin1 = 2;
+const unsigned int motor_right_pin2 = 4;
 
 const unsigned int servo_line = 9;
 
@@ -135,9 +135,9 @@ int sensor2steering_array[33] = {
   RIGHT_20,				// 0x06
   RIGHT_40,				// 0x07
   LEFT_15,				// 0x08
-  0,					// 0x09	
-  STRAIGHT,				// 0x10
-  0,					// 0x11
+  0,					 // 0x09	
+  STRAIGHT,				// 0xA
+  0,					// 0xB
   LEFT_20,				// 0xC
   0,					// 0xD
   STRAIGHT,				// 0xE
@@ -174,13 +174,13 @@ int steering2motor(int steering)
 {
 	
 	if(steering >= 30){
-		car.left -= 30;
+		car.left = 97;
 	} else if(steering <= -30){
-		car.right -= 30;
+		car.right = 97;
 	} else if(steering >= 20 && steering < 30){
-		car.left -= 10;
+		car.left = 117;
 	} else if(steering <=-20 && steering > -30){
-		car.right -= 10;
+		car.right = 117;
 	} else{
 		car.left = 127;
   		car.right = 127;
@@ -221,8 +221,13 @@ void loop()
   car.laststeering = car.steering;
   steering2motor(car.steering);
 #if DEBUG
+  Serial.print("car status:");
   Serial.print(car.left);
+  Serial.print("   ");
   Serial.print(car.right);
+  Serial.print("   ");
+  Serial.print(car.sensor);
+  Serial.println("   ");
   /* to do add more output info. */
 #endif
 }
